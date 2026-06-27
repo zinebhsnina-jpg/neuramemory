@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NeuraMemory Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#080814; --surface:#10101e; --surface2:#181828;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.1);
+  --accent:#7c6ef5; --accent2:#a78bfa; --accent-glow:rgba(124,110,245,0.25);
+  --green:#34d399; --amber:#fbbf24; --rose:#f87171; --blue:#60a5fa;
+  --text:#f0f0f8; --text2:#9ca3af; --text3:#4b5563;
+  --radius:16px; --radius-sm:10px; --radius-lg:24px;
+}
+body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+
+/* ── Splash ── */
+#splash { position:fixed; inset:0; background:var(--bg); z-index:9999;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; transition:opacity .5s; }
+#splash.gone { opacity:0; pointer-events:none; }
+.splash-orb { width:96px; height:96px; border-radius:28px;
+  background:linear-gradient(135deg,var(--accent),#c084fc);
+  display:flex; align-items:center; justify-content:center; font-size:44px;
+  box-shadow:0 0 60px var(--accent-glow); animation:floatOrb 3s ease-in-out infinite; }
+@keyframes floatOrb { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.splash-name { font-size:28px; font-weight:800; letter-spacing:-0.5px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.splash-tag { font-size:13px; color:var(--text2); }
+.splash-bar-wrap { width:180px; height:3px; background:var(--surface2); border-radius:2px; margin-top:24px; overflow:hidden; }
+.splash-bar { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:2px; animation:loadBar 1.8s ease forwards; }
+@keyframes loadBar { from{width:0} to{width:100%} }
+
+/* ── Auth ── */
+#auth { position:fixed; inset:0; background:var(--bg); z-index:999;
+  display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
+#auth.show { display:flex; }
+.auth-box { width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border2);
+  border-radius:var(--radius-lg); padding:36px 28px; }
+.auth-icon { width:52px; height:52px; border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),#c084fc);
+  display:flex; align-items:center; justify-content:center; font-size:24px; color:#fff; margin:0 auto 20px; }
+.auth-h { font-size:22px; font-weight:700; text-align:center; margin-bottom:4px; }
+.auth-sub { font-size:13px; color:var(--text2); text-align:center; margin-bottom:28px; }
+.tab-row { display:flex; gap:6px; background:var(--surface2); border-radius:var(--radius-sm); padding:4px; margin-bottom:24px; }
+.tab-btn { flex:1; padding:9px; border-radius:8px; border:none; background:none; color:var(--text2);
+  font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; font-family:inherit; }
+.tab-btn.on { background:linear-gradient(135deg,var(--accent),#7c3aed); color:#fff; }
+.aform { display:none; flex-direction:column; gap:12px; }
+.aform.on { display:flex; }
+.ainput { padding:13px 14px; border-radius:var(--radius-sm); background:var(--surface2);
+  border:1px solid var(--border); color:var(--text); font-size:14px; font-family:inherit; width:100%;
+  transition:border .2s; }
+.ainput:focus { outline:none; border-color:var(--accent); }
+.abtn { padding:13px; border-radius:var(--radius-sm); border:none; cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),#7c3aed); color:#fff;
+  font-size:15px; font-weight:700; font-family:inherit; transition:transform .15s; }
+.abtn:active { transform:scale(0.98); }
+.divider { display:flex; align-items:center; gap:10px; color:var(--text3); font-size:12px; margin:4px 0; }
+.divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--border); }
+.ghost-btn { padding:13px; border-radius:var(--radius-sm); border:1px solid var(--border2); background:none;
+  color:var(--text2); font-size:13px; font-family:inherit; cursor:pointer; transition:all .2s; }
+.ghost-btn:hover { border-color:var(--accent); color:var(--text); }
+
+/* ── App Shell ── */
+#app { display:none; flex-direction:column; min-height:100vh; }
+#app.show { display:flex; }
+
+/* ── Top Bar ── */
+.topbar { display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; background:rgba(8,8,20,.95); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border); position:sticky; top:0; z-index:80; }
+.tbar-left { display:flex; align-items:center; gap:10px; }
+.tbar-logo { width:32px; height:32px; border-radius:9px;
+  background:linear-gradient(135deg,var(--accent),#c084fc); display:flex; align-items:center; justify-content:center; font-size:15px; }
+.tbar-name { font-size:17px; font-weight:800; background:linear-gradient(90deg,var(--accent2),#c084fc);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.tbar-right { position:relative; }
+.avatar-btn { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--accent),#7c3aed);
+  display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; cursor:pointer; border:none; }
+.dropdown { position:absolute; right:0; top:44px; background:rgba(16,16,32,.98); border:1px solid var(--border2);
+  border-radius:var(--radius); padding:8px; min-width:160px; display:none; z-index:200;
+  box-shadow:0 16px 40px rgba(0,0,0,.5); }
+.dropdown.open { display:block; }
+.dd-item { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px;
+  cursor:pointer; font-size:13px; color:var(--text2); transition:all .15s; }
+.dd-item:hover { background:var(--surface2); color:var(--text); }
+.dd-item i { width:16px; text-align:center; }
+.dd-div { height:1px; background:var(--border); margin:4px 0; }
+
+/* ── Pages ── */
+.page { display:none; padding:16px; padding-bottom:88px; }
+.page.on { display:block; }
+
+/* ── Bottom Nav ── */
+.bottomnav { position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:space-around;
+  padding:10px 0 14px; background:rgba(8,8,20,.98); border-top:1px solid var(--border); z-index:80; }
+.bnav { display:flex; flex-direction:column; align-items:center; gap:3px; border:none; background:none;
+  color:var(--text3); font-size:10px; font-weight:600; cursor:pointer; padding:6px 14px;
+  transition:all .2s; text-transform:uppercase; letter-spacing:.5px; }
+.bnav i { font-size:20px; }
+.bnav.on { color:var(--accent2); }
+.bnav.on i { filter:drop-shadow(0 0 6px var(--accent-glow)); }
+
+/* ── Welcome card ── */
+.hero-card { background:linear-gradient(135deg,rgba(124,110,245,.18),rgba(167,139,250,.1));
+  border:1px solid rgba(124,110,245,.2); border-radius:var(--radius-lg); padding:24px; margin-bottom:20px; }
+.hero-greeting { font-size:13px; color:var(--accent2); font-weight:600; margin-bottom:4px; }
+.hero-title { font-size:22px; font-weight:800; margin-bottom:6px; }
+.hero-sub { font-size:13px; color:var(--text2); line-height:1.5; }
+
+/* ── Stats ── */
+.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+.scard { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 12px; text-align:center; }
+.sval { font-size:24px; font-weight:800; color:var(--accent2); }
+.slabel { font-size:11px; color:var(--text2); margin-top:3px; font-weight:500; }
+
+/* ── Quick Actions ── */
+.qa-row { display:flex; gap:10px; margin-bottom:24px; overflow-x:auto; padding-bottom:4px; }
+.qa { min-width:88px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:18px 10px; text-align:center; cursor:pointer; transition:all .2s; flex-shrink:0; }
+.qa:active { transform:scale(0.94); background:var(--surface2); }
+.qa i { font-size:22px; color:var(--accent2); display:block; margin-bottom:8px; }
+.qa-label { font-size:11px; font-weight:600; color:var(--text2); }
+
+/* ── Section ── */
+.sec-title { font-size:16px; font-weight:700; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+.sec-link { font-size:12px; color:var(--accent2); cursor:pointer; font-weight:600; }
+
+/* ── Memory Card ── */
+.mcard { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:18px; margin-bottom:10px; cursor:pointer; transition:all .2s; }
+.mcard:active { background:var(--surface2); transform:scale(0.98); }
+.mcard-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.mtype { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; }
+.mtype.note { color:var(--accent2); }
+.mtype.voice { color:var(--green); }
+.mtype.meeting { color:var(--amber); }
+.mtype.call { color:var(--rose); }
+.mdate { font-size:11px; color:var(--text3); }
+.mcard-title { font-size:15px; font-weight:700; margin-bottom:6px; }
+.mcard-preview { font-size:13px; color:var(--text2); line-height:1.5; display:-webkit-box;
+  -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:10px; }
+.tag-row { display:flex; gap:6px; flex-wrap:wrap; }
+.tag { padding:3px 9px; border-radius:20px; font-size:11px; font-weight:500;
+  background:var(--surface2); color:var(--text2); border:1px solid var(--border); }
+.tag.action { background:rgba(52,211,153,.08); color:var(--green); border-color:rgba(52,211,153,.2); }
+
+/* ── Search bar ── */
+.search-wrap { display:flex; align-items:center; gap:10px; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--radius); padding:11px 14px; margin-bottom:16px; }
+.search-wrap i { color:var(--text3); }
+.search-wrap input { background:none; border:none; outline:none; color:var(--text);
+  font-size:14px; font-family:inherit; width:100%; }
+.search-wrap input::placeholder { color:var(--text3); }
+
+/* ── Filter chips ── */
+.chips { display:flex; gap:8px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; }
+.chip { padding:7px 14px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer;
+  border:1px solid var(--border); color:var(--text2); background:var(--surface); white-space:nowrap; transition:all .2s; }
+.chip.on { background:rgba(124,110,245,.15); color:var(--accent2); border-color:rgba(124,110,245,.3); }
+
+/* ── Empty state ── */
+.empty { text-align:center; padding:60px 20px; color:var(--text3); }
+.empty i { font-size:48px; display:block; margin-bottom:14px; }
+.empty p { font-size:14px; margin-bottom:20px; color:var(--text2); }
+
+/* ── Detail view ── */
+.detail-wrap { display:none; }
+.detail-wrap.on { display:block; }
+.back-btn { display:flex; align-items:center; gap:7px; border:none; background:none;
+  color:var(--text2); font-size:14px; cursor:pointer; padding:8px 0; margin-bottom:14px; font-family:inherit; }
+.back-btn:active { color:var(--text); }
+.detail-title { font-size:20px; font-weight:800; margin-bottom:8px; }
+.detail-meta { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
+.dmeta { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text3); }
+.dsec { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:18px; margin-bottom:12px; }
+.dsec-title { font-size:10px; font-weight:700; color:var(--accent2); text-transform:uppercase;
+  letter-spacing:1px; margin-bottom:10px; }
+.dsec-body { font-size:14px; color:var(--text); line-height:1.7; }
+.action-row { display:flex; align-items:center; gap:10px; padding:10px; background:rgba(52,211,153,.05);
+  border-radius:8px; margin-bottom:6px; border:1px solid rgba(52,211,153,.1); }
+.action-row i { color:var(--green); font-size:13px; }
+.action-row span { font-size:13px; color:var(--text); }
+.det-actions { display:flex; gap:10px; margin-top:20px; }
+
+/* ── Insights ── */
+.insight { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:18px; margin-bottom:10px; }
+.insight-type { font-size:10px; font-weight:700; color:var(--accent2); text-transform:uppercase;
+  letter-spacing:1px; margin-bottom:8px; }
+.insight-text { font-size:14px; color:var(--text); line-height:1.6; }
+.insight-meta { font-size:11px; color:var(--text3); margin-top:8px; }
+
+/* ── Recording overlay ── */
+#recOverlay { position:fixed; inset:0; background:rgba(0,0,0,.97); z-index:500;
+  display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+#recOverlay.on { display:flex; }
+.rec-orb { width:140px; height:140px; border-radius:50%;
+  background:linear-gradient(135deg,#ef4444,#dc2626); display:flex; align-items:center; justify-content:center;
+  font-size:52px; color:#fff; animation:recPulse 1.5s ease-in-out infinite; }
+@keyframes recPulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)} 50%{box-shadow:0 0 0 28px rgba(239,68,68,0)} }
+.rec-label { font-size:16px; color:var(--text2); }
+.rec-timer { font-size:40px; font-weight:800; color:#ef4444; font-variant-numeric:tabular-nums; }
+.wave { display:flex; align-items:center; gap:3px; height:36px; }
+.wb { width:4px; border-radius:2px; background:linear-gradient(to top,var(--accent),var(--accent2)); animation:wv 1s ease-in-out infinite; }
+.wb:nth-child(1){height:30%;animation-delay:.0s}
+.wb:nth-child(2){height:55%;animation-delay:.1s}
+.wb:nth-child(3){height:80%;animation-delay:.2s}
+.wb:nth-child(4){height:100%;animation-delay:.3s}
+.wb:nth-child(5){height:80%;animation-delay:.4s}
+.wb:nth-child(6){height:55%;animation-delay:.5s}
+.wb:nth-child(7){height:30%;animation-delay:.6s}
+@keyframes wv { 0%,100%{transform:scaleY(.4)} 50%{transform:scaleY(1)} }
+.rec-stop { padding:14px 40px; border-radius:var(--radius); border:none; cursor:pointer;
+  background:#ef4444; color:#fff; font-size:15px; font-weight:700; font-family:inherit; }
+
+/* ── Modal ── */
+#modal { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:400; display:none; align-items:flex-end; }
+#modal.on { display:flex; }
+.modal-box { background:rgba(12,12,26,.98); border-radius:24px 24px 0 0; padding:24px;
+  width:100%; max-height:90vh; overflow-y:auto; border-top:1px solid var(--border2); }
+.modal-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.modal-h { font-size:17px; font-weight:700; }
+.modal-close { background:none; border:none; color:var(--text2); font-size:20px; cursor:pointer; padding:4px; }
+.field { margin-bottom:14px; }
+.flabel { display:block; font-size:12px; font-weight:600; color:var(--text2); margin-bottom:6px; }
+.finput,.fselect,.ftextarea {
+  width:100%; padding:12px 14px; border-radius:var(--radius-sm);
+  background:var(--surface2); border:1px solid var(--border); color:var(--text);
+  font-size:14px; font-family:inherit; -webkit-appearance:none; }
+.finput:focus,.fselect:focus,.ftextarea:focus { outline:none; border-color:var(--accent); }
+.ftextarea { min-height:100px; resize:vertical; }
+.modal-footer { display:flex; gap:10px; margin-top:20px; }
+
+/* ── Buttons ── */
+.btn { padding:11px 20px; border-radius:var(--radius-sm); border:none; cursor:pointer;
+  font-size:14px; font-weight:600; font-family:inherit; transition:all .15s; display:flex; align-items:center; gap:8px; }
+.btn:active { transform:scale(0.97); }
+.btn-p { background:linear-gradient(135deg,var(--accent),#7c3aed); color:#fff; flex:1; justify-content:center; }
+.btn-s { background:var(--surface2); color:var(--text); border:1px solid var(--border2); flex:1; justify-content:center; }
+.btn-d { background:rgba(239,68,68,.1); color:var(--rose); border:1px solid rgba(239,68,68,.2); flex:1; justify-content:center; }
+
+/* ── AI processing ── */
+.ai-box { text-align:center; padding:30px 20px; }
+.ai-box i { font-size:36px; color:var(--accent2); animation:spin 2s linear infinite; }
+.ai-box p { font-size:13px; color:var(--text2); margin-top:10px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── Toast ── */
+.toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--surface); border:1px solid var(--border2); border-radius:var(--radius);
+  padding:12px 20px; display:flex; align-items:center; gap:10px;
+  z-index:1000; opacity:0; transition:all .3s; white-space:nowrap; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.ok { border-color:rgba(52,211,153,.3); }
+.toast.ok i { color:var(--green); }
+.toast.err { border-color:rgba(248,113,113,.3); }
+.toast.err i { color:var(--rose); }
+.toast span { font-size:13px; }
+
+/* ── Profile ── */
+.profile-hero { display:flex; flex-direction:column; align-items:center; padding:30px 0; }
+.big-avatar { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,var(--accent),#7c3aed);
+  display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:800; color:#fff; margin-bottom:14px; }
+.profile-name { font-size:20px; font-weight:700; }
+.profile-email { font-size:13px; color:var(--text2); margin-top:3px; }
+.profile-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:20px 0; }
+.pcard { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; }
+.pval { font-size:22px; font-weight:800; color:var(--accent2); }
+.plabel { font-size:11px; color:var(--text2); margin-top:3px; }
+.settings-list { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+.srow { display:flex; align-items:center; gap:14px; padding:16px; border-bottom:1px solid var(--border); cursor:pointer; transition:all .15s; }
+.srow:last-child { border-bottom:none; }
+.srow:active { background:var(--surface2); }
+.srow-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+.srow-text { flex:1; }
+.srow-label { font-size:14px; font-weight:500; }
+.srow-sub { font-size:12px; color:var(--text2); margin-top:2px; }
+.srow i.arr { color:var(--text3); }
+
+/* ── Audio Player ── */
+.audio-player-box { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:12px; }
+.audio-player-title { font-size:10px; font-weight:700; color:var(--accent2); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+.audio-controls { display:flex; align-items:center; gap:12px; }
+.play-btn { width:44px; height:44px; border-radius:50%; border:none; cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),#7c3aed); color:#fff; font-size:16px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:transform .15s; }
+.play-btn:active { transform:scale(0.92); }
+.audio-info { flex:1; min-width:0; }
+.audio-progress-wrap { position:relative; height:4px; background:var(--border2); border-radius:2px; cursor:pointer; margin-bottom:6px; }
+.audio-progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:2px; width:0%; transition:width .1s linear; pointer-events:none; }
+.audio-times { display:flex; justify-content:space-between; font-size:11px; color:var(--text3); font-variant-numeric:tabular-nums; }
+.audio-dur { font-size:11px; color:var(--text3); flex-shrink:0; font-variant-numeric:tabular-nums; }
+
+/* scrollbar */
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-orb">🧠</div>
+  <div class="splash-name">NeuraMemory</div>
+  <div class="splash-tag">Your AI-Powered Second Brain</div>
+  <div class="splash-bar-wrap"><div class="splash-bar"></div></div>
+</div>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="auth-box">
+    <div class="auth-icon">🧠</div>
+    <div class="auth-h">Welcome Back</div>
+    <div class="auth-sub">Sign in to access your memories</div>
+    <div class="tab-row">
+      <button class="tab-btn on" onclick="switchTab('login')">Sign In</button>
+      <button class="tab-btn" onclick="switchTab('register')">Sign Up</button>
+    </div>
+    <div class="aform on" id="loginForm">
+      <input class="ainput" id="le" type="email" placeholder="Email address">
+      <input class="ainput" id="lp" type="password" placeholder="Password">
+      <button class="abtn" onclick="doLogin()">Sign In</button>
+    </div>
+    <div class="aform" id="registerForm">
+      <input class="ainput" id="rn" type="text" placeholder="Full name">
+      <input class="ainput" id="re" type="email" placeholder="Email address">
+      <input class="ainput" id="rp" type="password" placeholder="Password">
+      <button class="abtn" onclick="doRegister()">Create Account</button>
+    </div>
+    <div class="divider">or</div>
+    <button class="ghost-btn" onclick="doGuest()">Continue as Guest</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="tbar-left">
+      <div class="tbar-logo">🧠</div>
+      <div class="tbar-name">NeuraMemory</div>
+    </div>
+    <div class="tbar-right">
+      <button class="avatar-btn" id="avatarBtn" onclick="toggleDropdown()">N</button>
+      <div class="dropdown" id="dropdown">
+        <div class="dd-item" onclick="showPage('profile')"><i class="fa fa-user"></i> Profile</div>
+        <div class="dd-div"></div>
+        <div class="dd-item" onclick="doLogout()" style="color:var(--rose)"><i class="fa fa-sign-out-alt"></i> Sign Out</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME page -->
+  <div class="page on" id="pg-home">
+    <div class="hero-card">
+      <div class="hero-greeting">Good day 👋</div>
+      <div class="hero-title" id="homeGreeting">Hello, Nina!</div>
+      <div class="hero-sub">You have <strong id="homeMemCount">0</strong> memories stored. What would you like to capture today?</div>
+    </div>
+    <div class="stats-row">
+      <div class="scard"><div class="sval" id="statTotal">0</div><div class="slabel">Memories</div></div>
+      <div class="scard"><div class="sval" id="statVoice">0</div><div class="slabel">Voice</div></div>
+      <div class="scard"><div class="sval" id="statActions">0</div><div class="slabel">Actions</div></div>
+    </div>
+    <div class="sec-title">Quick Capture</div>
+    <div class="qa-row">
+      <div class="qa" onclick="openNoteModal()"><i class="fas fa-pen"></i><div class="qa-label">Note</div></div>
+      <div class="qa" onclick="startRecord()"><i class="fas fa-microphone"></i><div class="qa-label">Voice</div></div>
+      <div class="qa" onclick="openMeetingModal()"><i class="fas fa-users"></i><div class="qa-label">Meeting</div></div>
+      <div class="qa" onclick="openCallModal()"><i class="fas fa-phone"></i><div class="qa-label">Call</div></div>
+    </div>
+    <div class="sec-title">Recent Memories <span class="sec-link" onclick="showPage('memories')">See all</span></div>
+    <div id="recentList"></div>
+  </div>
+
+  <!-- MEMORIES page -->
+  <div class="page" id="pg-memories">
+    <!-- List view -->
+    <div id="memListView">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search memories…" oninput="filterMemories()">
+      </div>
+      <div class="chips">
+        <div class="chip on" onclick="setChip(this,'all')">All</div>
+        <div class="chip" onclick="setChip(this,'note')">Notes</div>
+        <div class="chip" onclick="setChip(this,'voice')">Voice</div>
+        <div class="chip" onclick="setChip(this,'meeting')">Meetings</div>
+        <div class="chip" onclick="setChip(this,'call')">Calls</div>
+      </div>
+      <div id="memList"></div>
+    </div>
+    <!-- Detail view -->
+    <div class="detail-wrap" id="detailView">
+      <button class="back-btn" onclick="closeDetail()"><i class="fas fa-arrow-left"></i> Back</button>
+      <div class="detail-title" id="dTitle"></div>
+      <div class="detail-meta" id="dMeta"></div>
+      <div id="dBody"></div>
+      <div class="det-actions" id="dActions"></div>
+    </div>
+  </div>
+
+  <!-- INSIGHTS page -->
+  <div class="page" id="pg-insights">
+    <div class="sec-title" style="margin-bottom:6px">AI Insights</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Patterns and summaries generated from your memories</p>
+    <div id="insightsList">
+      <div class="empty"><i class="fas fa-lightbulb"></i><p>No insights yet. Add some memories and they'll appear here.</p></div>
+    </div>
+    <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:10px" onclick="generateInsights()">
+      <i class="fas fa-magic"></i> Generate Insights
+    </button>
+  </div>
+
+  <!-- PROFILE page -->
+  <div class="page" id="pg-profile">
+    <div class="profile-hero">
+      <div class="big-avatar" id="profileAvatar">N</div>
+      <div class="profile-name" id="profileName">Nina</div>
+      <div class="profile-email" id="profileEmail">nina@example.com</div>
+    </div>
+    <div class="profile-stats">
+      <div class="pcard"><div class="pval" id="ps1">0</div><div class="plabel">Memories</div></div>
+      <div class="pcard"><div class="pval" id="ps2">0</div><div class="plabel">Voice Memos</div></div>
+      <div class="pcard"><div class="pval" id="ps3">0</div><div class="plabel">Actions</div></div>
+    </div>
+    <div class="settings-list">
+      <div class="srow" onclick="openNoteModal()">
+        <div class="srow-icon" style="background:rgba(124,110,245,.1);color:var(--accent2)"><i class="fas fa-plus"></i></div>
+        <div class="srow-text"><div class="srow-label">Add Memory</div><div class="srow-sub">Capture a new note</div></div>
+        <i class="fas fa-chevron-right arr"></i>
+      </div>
+      <div class="srow" onclick="exportData()">
+        <div class="srow-icon" style="background:rgba(52,211,153,.1);color:var(--green)"><i class="fas fa-download"></i></div>
+        <div class="srow-text"><div class="srow-label">Export Memories</div><div class="srow-sub">Download as JSON</div></div>
+        <i class="fas fa-chevron-right arr"></i>
+      </div>
+      <div class="srow" onclick="clearAll()">
+        <div class="srow-icon" style="background:rgba(248,113,113,.1);color:var(--rose)"><i class="fas fa-trash"></i></div>
+        <div class="srow-text"><div class="srow-label">Clear All Memories</div><div class="srow-sub">This cannot be undone</div></div>
+        <i class="fas fa-chevron-right arr"></i>
+      </div>
+      <div class="srow" onclick="doLogout()">
+        <div class="srow-icon" style="background:rgba(248,113,113,.08);color:var(--rose)"><i class="fas fa-sign-out-alt"></i></div>
+        <div class="srow-text"><div class="srow-label" style="color:var(--rose)">Sign Out</div><div class="srow-sub">Return to login</div></div>
+        <i class="fas fa-chevron-right arr"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottomnav">
+    <button class="bnav on" id="nav-home" onclick="showPage('home')"><i class="fas fa-home"></i>Home</button>
+    <button class="bnav" id="nav-memories" onclick="showPage('memories')"><i class="fas fa-brain"></i>Memories</button>
+    <button class="bnav" id="nav-insights" onclick="showPage('insights')"><i class="fas fa-lightbulb"></i>Insights</button>
+    <button class="bnav" id="nav-profile" onclick="showPage('profile')"><i class="fas fa-user"></i>Profile</button>
+  </div>
+</div>
+
+<!-- RECORDING OVERLAY -->
+<div id="recOverlay">
+  <div class="rec-orb"><i class="fas fa-microphone"></i></div>
+  <div class="wave">
+    <div class="wb"></div><div class="wb"></div><div class="wb"></div>
+    <div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div>
+  </div>
+  <div class="rec-label">Recording…</div>
+  <div class="rec-timer" id="recTimer">0:00</div>
+  <button class="rec-stop" onclick="stopRecord()"><i class="fas fa-stop"></i> Stop Recording</button>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div id="modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-h" id="modalTitle">New Memory</div>
+      <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="modalContent"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg"></span></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let user = null;
+let memories = [];
+let currentFilter = 'all';
+let currentMemId = null;
+let recInterval = null;
+let recSeconds = 0;
+let mediaRec = null;
+let recChunks = [];
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('gone');
+    const saved = localStorage.getItem('nm_user');
+    if (saved) { user = JSON.parse(saved); bootApp(); }
+    else { document.getElementById('auth').classList.add('show'); }
+  }, 2000);
+});
+
+function bootApp() {
+  memories = JSON.parse(localStorage.getItem('nm_memories_' + user.email) || '[]');
+  document.getElementById('auth').classList.remove('show');
+  document.getElementById('app').classList.add('show');
+  // Avatar initials
+  const init = (user.name||'U')[0].toUpperCase();
+  document.getElementById('avatarBtn').textContent = init;
+  document.getElementById('profileAvatar').textContent = init;
+  document.getElementById('profileName').textContent = user.name || 'User';
+  document.getElementById('profileEmail').textContent = user.email || '';
+  document.getElementById('homeGreeting').textContent = 'Hello, ' + (user.name||'there') + '!';
+  refreshStats();
+  renderRecent();
+}
+
+function save() {
+  localStorage.setItem('nm_memories_' + user.email, JSON.stringify(memories));
+  refreshStats();
+}
+
+function refreshStats() {
+  const voice = memories.filter(m=>m.type==='voice').length;
+  const actions = memories.reduce((a,m)=>a+(m.actions||[]).length,0);
+  document.getElementById('statTotal').textContent = memories.length;
+  document.getElementById('statVoice').textContent = voice;
+  document.getElementById('statActions').textContent = actions;
+  document.getElementById('homeMemCount').textContent = memories.length;
+  document.getElementById('ps1').textContent = memories.length;
+  document.getElementById('ps2').textContent = voice;
+  document.getElementById('ps3').textContent = actions;
+}
+
+// ═══════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════
+function switchTab(t) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('on',['login','register'][i]===t));
+  document.getElementById('loginForm').classList.toggle('on',t==='login');
+  document.getElementById('registerForm').classList.toggle('on',t==='register');
+}
+
+function doLogin() {
+  const e = document.getElementById('le').value.trim();
+  const p = document.getElementById('lp').value;
+  if (!e||!p) return toast('Please fill all fields','err');
+  const users = JSON.parse(localStorage.getItem('nm_users')||'{}');
+  if (!users[e]||users[e].password!==p) return toast('Invalid credentials','err');
+  user = {name:users[e].name, email:e};
+  localStorage.setItem('nm_user', JSON.stringify(user));
+  bootApp();
+}
+
+function doRegister() {
+  const n = document.getElementById('rn').value.trim();
+  const e = document.getElementById('re').value.trim();
+  const p = document.getElementById('rp').value;
+  if (!n||!e||!p) return toast('Please fill all fields','err');
+  const users = JSON.parse(localStorage.getItem('nm_users')||'{}');
+  if (users[e]) return toast('Email already registered','err');
+  users[e] = {name:n,password:p};
+  localStorage.setItem('nm_users',JSON.stringify(users));
+  user = {name:n,email:e};
+  localStorage.setItem('nm_user',JSON.stringify(user));
+  bootApp(); toast('Account created!','ok');
+}
+
+function doGuest() {
+  user = {name:'Guest',email:'guest@neuramemory.app'};
+  bootApp();
+}
+
+function doLogout() {
+  localStorage.removeItem('nm_user');
+  user = null; memories = [];
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('auth').classList.add('show');
+  closeDropdown();
+}
+
+// ═══════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pg-'+name).classList.add('on');
+  document.querySelectorAll('.bnav').forEach(b=>b.classList.remove('on'));
+  const nav = document.getElementById('nav-'+name);
+  if(nav) nav.classList.add('on');
+  closeDropdown();
+  if(name==='memories') { renderMemList(); closeDetail(); }
+  if(name==='home') renderRecent();
+}
+
+// ═══════════════════════════════════════════
+//  DROPDOWN
+// ═══════════════════════════════════════════
+function toggleDropdown() {
+  document.getElementById('dropdown').classList.toggle('open');
+}
+function closeDropdown() {
+  document.getElementById('dropdown').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.tbar-right')) closeDropdown();
+});
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+function typeColor(t) {
+  return {note:'note',voice:'voice',meeting:'meeting',call:'call'}[t]||'note';
+}
+function typeIcon(t) {
+  return {note:'fa-pen',voice:'fa-microphone',meeting:'fa-users',call:'fa-phone'}[t]||'fa-pen';
+}
+function typeName(t) {
+  return {note:'Note',voice:'Voice',meeting:'Meeting',call:'Call'}[t]||'Note';
+}
+function fmtDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+
+function memCardHTML(m) {
+  const tags = (m.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
+  const actions = (m.actions||[]).map(a=>`<span class="tag action"><i class="fas fa-bolt"></i> ${a}</span>`).join('');
+  return `<div class="mcard" onclick="openDetail('${m.id}')">
+    <div class="mcard-top">
+      <div class="mtype ${typeColor(m.type)}"><i class="fas ${typeIcon(m.type)}"></i>${typeName(m.type)}</div>
+      <div class="mdate">${fmtDate(m.ts)}</div>
+    </div>
+    <div class="mcard-title">${m.title}</div>
+    <div class="mcard-preview">${m.summary||m.content||''}</div>
+    <div class="tag-row">${tags}${actions}</div>
+  </div>`;
+}
+
+function renderRecent() {
+  const list = document.getElementById('recentList');
+  const recent = [...memories].sort((a,b)=>b.ts-a.ts).slice(0,4);
+  list.innerHTML = recent.length ? recent.map(memCardHTML).join('') :
+    `<div class="empty"><i class="fas fa-brain"></i><p>No memories yet. Tap a quick capture option above.</p></div>`;
+}
+
+function renderMemList() {
+  const q = (document.getElementById('searchInput').value||'').toLowerCase();
+  const list = document.getElementById('memList');
+  let filtered = [...memories].sort((a,b)=>b.ts-a.ts);
+  if(currentFilter!=='all') filtered = filtered.filter(m=>m.type===currentFilter);
+  if(q) filtered = filtered.filter(m=>(m.title+m.content+m.summary).toLowerCase().includes(q));
+  list.innerHTML = filtered.length ? filtered.map(memCardHTML).join('') :
+    `<div class="empty"><i class="fas fa-search"></i><p>No memories found.</p></div>`;
+}
+
+function filterMemories() { renderMemList(); }
+
+function setChip(el,f) {
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  currentFilter = f;
+  renderMemList();
+}
+
+// ═══════════════════════════════════════════
+//  DETAIL VIEW
+// ═══════════════════════════════════════════
+function openDetail(id) {
+  const m = memories.find(x=>x.id===id);
+  if(!m) return;
+  currentMemId = id;
+  document.getElementById('memListView').style.display='none';
+  const dv = document.getElementById('detailView');
+  dv.classList.add('on');
+  document.getElementById('dTitle').textContent = m.title;
+  document.getElementById('dMeta').innerHTML = `
+    <div class="dmeta"><i class="fas ${typeIcon(m.type)}"></i> ${typeName(m.type)}</div>
+    <div class="dmeta"><i class="fas fa-calendar"></i> ${fmtDate(m.ts)}</div>
+    ${m.participants?`<div class="dmeta"><i class="fas fa-users"></i> ${m.participants}</div>`:''}
+  `;
+  let body = '';
+
+  // Audio player if voice memory has recording
+  if(m.audioBase64) {
+    const durSec = m.dur || 0;
+    const durStr = Math.floor(durSec/60)+':'+(durSec%60<10?'0':'')+durSec%60;
+    body += `
+    <div class="audio-player-box">
+      <div class="audio-player-title"><i class="fas fa-headphones"></i> Voice Recording</div>
+      <div class="audio-controls">
+        <button class="play-btn" id="detPlayBtn" onclick="toggleDetAudio()"><i class="fas fa-play"></i></button>
+        <div class="audio-info">
+          <div class="audio-progress-wrap" id="detProgressWrap" onclick="seekDetAudio(event)">
+            <div class="audio-progress-fill" id="detProgressFill"></div>
+          </div>
+          <div class="audio-times">
+            <span id="detCurTime">0:00</span>
+            <span id="detDurTime">${durStr}</span>
+          </div>
+        </div>
+      </div>
+      <audio id="detAudio" src="${m.audioBase64}" style="display:none"
+        onended="detAudioEnded()" ontimeupdate="updateDetProgress()" onloadedmetadata="detMetaLoaded()"></audio>
+    </div>`;
+  }
+
+  body += `<div class="dsec"><div class="dsec-title">Content</div><div class="dsec-body">${(m.content||'').replace(/\n/g,'<br>')}</div></div>`;
+  if(m.summary) body += `<div class="dsec"><div class="dsec-title">AI Summary</div><div class="dsec-body">${m.summary}</div></div>`;
+  if(m.keyPoints) body += `<div class="dsec"><div class="dsec-title">Key Points</div><div class="dsec-body">${m.keyPoints}</div></div>`;
+  if(m.actions&&m.actions.length) {
+    body += `<div class="dsec"><div class="dsec-title">Action Items</div>` +
+      m.actions.map(a=>`<div class="action-row"><i class="fas fa-check-circle"></i><span>${a}</span></div>`).join('') + `</div>`;
+  }
+  if(m.tags&&m.tags.length) {
+    body += `<div class="dsec"><div class="dsec-title">Tags</div><div class="dsec-body">${m.tags.map(t=>`<span class="tag">${t}</span>`).join(' ')}</div></div>`;
+  }
+  document.getElementById('dBody').innerHTML = body;
+  document.getElementById('dActions').innerHTML = `
+    <button class="btn btn-s" onclick="editMemory('${id}')"><i class="fas fa-edit"></i> Edit</button>
+    <button class="btn btn-d" onclick="deleteMemory('${id}')"><i class="fas fa-trash"></i> Delete</button>
+  `;
+}
+
+function closeDetail() {
+  // Stop any playing audio
+  const a = document.getElementById('detAudio');
+  if(a) { a.pause(); a.currentTime=0; }
+  document.getElementById('memListView').style.display='';
+  document.getElementById('detailView').classList.remove('on');
+  currentMemId = null;
+}
+
+// ═══════════════════════════════════════════
+//  MODAL HELPERS
+// ═══════════════════════════════════════════
+function openModal(title,contentHTML,footerHTML) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalContent').innerHTML = contentHTML;
+  document.getElementById('modalFooter').innerHTML = footerHTML;
+  document.getElementById('modal').classList.add('on');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('on');
+}
+
+// ═══════════════════════════════════════════
+//  ADD MEMORIES
+// ═══════════════════════════════════════════
+function openNoteModal(id) {
+  const m = id ? memories.find(x=>x.id===id) : null;
+  openModal(m?'Edit Note':'New Note',`
+    <div class="field"><label class="flabel">Title</label><input class="finput" id="fTitle" placeholder="Note title" value="${m?m.title:''}"></div>
+    <div class="field"><label class="flabel">Content</label><textarea class="ftextarea" id="fContent" placeholder="Write your note…">${m?m.content:''}</textarea></div>
+    <div class="field"><label class="flabel">Tags (comma-separated)</label><input class="finput" id="fTags" placeholder="work, idea, project" value="${m?(m.tags||[]).join(', '):''}"></div>
+  `,`
+    <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-p" onclick="saveNote('${id||''}')"><i class="fas fa-magic"></i> Save & Analyze</button>
+  `);
+}
+
+function openMeetingModal() {
+  openModal('New Meeting',`
+    <div class="field"><label class="flabel">Meeting Title</label><input class="finput" id="fTitle" placeholder="e.g. Product Strategy Call"></div>
+    <div class="field"><label class="flabel">Participants</label><input class="finput" id="fParticipants" placeholder="John, Sara, Mike"></div>
+    <div class="field"><label class="flabel">Notes / Transcript</label><textarea class="ftextarea" id="fContent" placeholder="Paste meeting notes or transcript…"></textarea></div>
+    <div class="field"><label class="flabel">Tags</label><input class="finput" id="fTags" placeholder="meeting, q3, planning"></div>
+  `,`
+    <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-p" onclick="saveMeeting()"><i class="fas fa-magic"></i> Save & Analyze</button>
+  `);
+}
+
+function openCallModal() {
+  openModal('New Call',`
+    <div class="field"><label class="flabel">Call Subject</label><input class="finput" id="fTitle" placeholder="e.g. Client follow-up call"></div>
+    <div class="field"><label class="flabel">With</label><input class="finput" id="fParticipants" placeholder="Contact name"></div>
+    <div class="field"><label class="flabel">Notes</label><textarea class="ftextarea" id="fContent" placeholder="What was discussed?"></textarea></div>
+    <div class="field"><label class="flabel">Tags</label><input class="finput" id="fTags" placeholder="client, followup"></div>
+  `,`
+    <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-p" onclick="saveCall()"><i class="fas fa-magic"></i> Save & Analyze</button>
+  `);
+}
+
+function editMemory(id) {
+  const m = memories.find(x=>x.id===id);
+  if(!m) return;
+  openNoteModal(id);
+}
+
+// ═══════════════════════════════════════════
+//  AI ANALYSIS via Claude API
+// ═══════════════════════════════════════════
+async function analyzeWithClaude(type, title, content, participants) {
+  const prompt = `You are an AI assistant analyzing a ${type}.
+Title: "${title}"
+${participants?'Participants: '+participants:''}
+Content:
+"""
+${content}
+"""
+
+Please respond ONLY with a valid JSON object (no markdown, no extra text) with these fields:
+{
+  "summary": "2-3 sentence summary",
+  "keyPoints": "bullet points as HTML <li> tags",
+  "actions": ["action item 1", "action item 2"],
+  "tags": ["tag1", "tag2", "tag3"]
+}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens:1000,
+      messages:[{role:'user',content:prompt}]
+    })
+  });
+  const data = await res.json();
+  const text = data.content[0].text.replace(/```json|```/g,'').trim();
+  return JSON.parse(text);
+}
+
+async function saveNote(editId) {
+  const title = document.getElementById('fTitle').value.trim();
+  const content = document.getElementById('fContent').value.trim();
+  const tagsRaw = document.getElementById('fTags').value;
+  if(!title||!content) return toast('Title and content required','err');
+
+  document.getElementById('modalContent').innerHTML = `<div class="ai-box"><i class="fas fa-spinner"></i><p>Analyzing with AI…</p></div>`;
+  document.getElementById('modalFooter').innerHTML = '';
+
+  try {
+    const ai = await analyzeWithClaude('note',title,content,'');
+    const userTags = tagsRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    const allTags = [...new Set([...userTags,...(ai.tags||[])])];
+    if(editId) {
+      const m = memories.find(x=>x.id===editId);
+      Object.assign(m,{title,content,summary:ai.summary,keyPoints:ai.keyPoints,actions:ai.actions||[],tags:allTags});
+    } else {
+      memories.push({id:uid(),type:'note',title,content,summary:ai.summary,keyPoints:ai.keyPoints,actions:ai.actions||[],tags:allTags,ts:Date.now()});
+    }
+    save(); closeModal(); renderRecent(); renderMemList();
+    toast('Memory saved & analyzed ✨','ok');
+  } catch(e) {
+    const userTags = tagsRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    if(editId) { const m=memories.find(x=>x.id===editId); Object.assign(m,{title,content,tags:userTags}); }
+    else memories.push({id:uid(),type:'note',title,content,tags:userTags,ts:Date.now()});
+    save(); closeModal(); renderRecent();
+    toast('Saved (AI analysis unavailable)','ok');
+  }
+}
+
+async function saveMeeting() {
+  const title = document.getElementById('fTitle').value.trim();
+  const content = document.getElementById('fContent').value.trim();
+  const participants = document.getElementById('fParticipants').value.trim();
+  const tagsRaw = document.getElementById('fTags').value;
+  if(!title||!content) return toast('Title and notes required','err');
+
+  document.getElementById('modalContent').innerHTML = `<div class="ai-box"><i class="fas fa-spinner"></i><p>Analyzing meeting with AI…</p></div>`;
+  document.getElementById('modalFooter').innerHTML = '';
+
+  try {
+    const ai = await analyzeWithClaude('meeting',title,content,participants);
+    const userTags = tagsRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    const allTags = [...new Set([...userTags,...(ai.tags||[])])];
+    memories.push({id:uid(),type:'meeting',title,content,participants,summary:ai.summary,keyPoints:ai.keyPoints,actions:ai.actions||[],tags:allTags,ts:Date.now()});
+    save(); closeModal(); renderRecent();
+    toast('Meeting analyzed ✨','ok');
+  } catch(e) {
+    const userTags = tagsRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    memories.push({id:uid(),type:'meeting',title,content,participants,tags:userTags,ts:Date.now()});
+    save(); closeModal(); renderRecent();
+    toast('Saved (AI unavailable)','ok');
+  }
+}
+
+async function saveCall() {
+  const title = document.getElementById('fTitle').value.trim();
+  const content = document.getElementById('fContent').value.trim();
+  const participants = document.getElementById('fParticipants').value.trim();
+  const tagsRaw = document.getElementById('fTags').value;
+  if(!title||!content) return toast('Subject and notes required','err');
+
+  document.getElementById('modalContent').innerHTML = `<div class="ai-box"><i class="fas fa-spinner"></i><p>Analyzing call…</p></div>`;
+  document.getElementById('modalFooter').innerHTML = '';
+
+  try {
+    const ai = await analyzeWithClaude('phone call',title,content,participants);
+    const userTags = tagsRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    const allTags = [...new Set([...userTags,...(ai.tags||[])])];
+    memories.push({id:uid(),type:'call',title,content,participants,summary:ai.summary,keyPoints:ai.keyPoints,actions:ai.actions||[],tags:allTags,ts:Date.now()});
+    save(); closeModal(); renderRecent();
+    toast('Call notes analyzed ✨','ok');
+  } catch(e) {
+    memories.push({id:uid(),type:'call',title,content,participants,ts:Date.now()});
+    save(); closeModal(); renderRecent();
+    toast('Saved (AI unavailable)','ok');
+  }
+}
+
+// ═══════════════════════════════════════════
+//  VOICE RECORDING
+// ═══════════════════════════════════════════
+async function startRecord() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    mediaRec = new MediaRecorder(stream);
+    recChunks = [];
+    mediaRec.ondataavailable = e => recChunks.push(e.data);
+    mediaRec.onstop = processVoice;
+    mediaRec.start();
+    recSeconds = 0;
+    document.getElementById('recTimer').textContent = '0:00';
+    document.getElementById('recOverlay').classList.add('on');
+    recInterval = setInterval(()=>{
+      recSeconds++;
+      const m = Math.floor(recSeconds/60);
+      const s = recSeconds%60;
+      document.getElementById('recTimer').textContent = m+':'+(s<10?'0':'')+s;
+    },1000);
+  } catch(e) {
+    toast('Microphone access denied','err');
+    openVoiceTextFallback();
+  }
+}
+
+function stopRecord() {
+  clearInterval(recInterval);
+  mediaRec.stop();
+  document.getElementById('recOverlay').classList.remove('on');
+}
+
+function blobToBase64(blob) {
+  return new Promise((res,rej)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>res(reader.result);
+    reader.onerror = rej;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function openVoiceTextFallback() {
+  openModal('New Voice Memory',`
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Microphone unavailable. Enter a transcript or description instead.</p>
+    <div class="field"><label class="flabel">Title</label><input class="finput" id="fTitle" placeholder="Voice memo title"></div>
+    <div class="field"><label class="flabel">Transcript / Notes</label><textarea class="ftextarea" id="fContent" placeholder="What did you say?"></textarea></div>
+  `,`
+    <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-p" onclick="saveVoiceText()"><i class="fas fa-magic"></i> Save & Analyze</button>
+  `);
+}
+
+async function saveVoiceText() {
+  const title = document.getElementById('fTitle').value.trim()||'Voice Memo';
+  const content = document.getElementById('fContent').value.trim();
+  if(!content) return toast('Please enter content','err');
+  // Pause modal audio if playing
+  const ma = document.getElementById('modalAudio');
+  if(ma) ma.pause();
+
+  document.getElementById('modalContent').innerHTML=`<div class="ai-box"><i class="fas fa-spinner"></i><p>Analyzing…</p></div>`;
+  document.getElementById('modalFooter').innerHTML='';
+
+  const audioBase64 = window._pendingAudio || null;
+  const dur = window._pendingDur || 0;
+
+  try {
+    const ai = await analyzeWithClaude('voice memo',title,content,'');
+    memories.push({id:uid(),type:'voice',title,content,summary:ai.summary,keyPoints:ai.keyPoints,actions:ai.actions||[],tags:ai.tags||[],audioBase64,dur,ts:Date.now()});
+  } catch(e) {
+    memories.push({id:uid(),type:'voice',title,content,audioBase64,dur,ts:Date.now()});
+  }
+  window._pendingAudio = null;
+  window._pendingDur = 0;
+  save(); closeModal(); renderRecent();
+  toast('Voice memory saved ✨','ok');
+}
+
+async function processVoice() {
+  const blob = new Blob(recChunks, {type: mediaRec.mimeType || 'audio/webm'});
+  const dur = recSeconds;
+  const durStr = Math.floor(dur/60)+':'+(dur%60<10?'0':'')+dur%60;
+
+  openModal('Voice Memory',`<div class="ai-box"><i class="fas fa-spinner"></i><p>Processing…</p></div>`,'');
+
+  let audioBase64 = null;
+  try { audioBase64 = await blobToBase64(blob); } catch(e) {}
+
+  // Store temporarily for saveVoiceText to access
+  window._pendingAudio = audioBase64;
+  window._pendingDur = dur;
+
+  const playerHTML = audioBase64 ? `
+    <div class="audio-player-box" style="margin-bottom:14px">
+      <div class="audio-player-title"><i class="fas fa-headphones"></i> Preview Recording</div>
+      <div class="audio-controls">
+        <button class="play-btn" id="modalPlayBtn" onclick="toggleModalAudio()"><i class="fas fa-play"></i></button>
+        <div class="audio-info">
+          <div class="audio-progress-wrap" id="modalProgressWrap" onclick="seekModalAudio(event)">
+            <div class="audio-progress-fill" id="modalProgressFill"></div>
+          </div>
+          <div class="audio-times">
+            <span id="modalCurTime">0:00</span>
+            <span id="modalDurTime">${durStr}</span>
+          </div>
+        </div>
+      </div>
+      <audio id="modalAudio" src="${audioBase64}" style="display:none" onended="modalAudioEnded()" ontimeupdate="updateModalProgress()"></audio>
+    </div>` : '';
+
+  openModal('Voice Memory', `
+    ${playerHTML}
+    <div class="field"><label class="flabel">Title</label><input class="finput" id="fTitle" placeholder="What was this about?"></div>
+    <div class="field"><label class="flabel">Key Notes</label><textarea class="ftextarea" id="fContent" placeholder="Summarize what was discussed…"></textarea></div>
+  `,`
+    <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-p" onclick="saveVoiceText()"><i class="fas fa-magic"></i> Analyze & Save</button>
+  `);
+}
+
+// Modal audio player controls
+function toggleModalAudio() {
+  const audio = document.getElementById('modalAudio');
+  const btn = document.getElementById('modalPlayBtn');
+  if(!audio) return;
+  if(audio.paused) { audio.play(); btn.innerHTML='<i class="fas fa-pause"></i>'; }
+  else { audio.pause(); btn.innerHTML='<i class="fas fa-play"></i>'; }
+}
+function updateModalProgress() {
+  const audio = document.getElementById('modalAudio');
+  const fill = document.getElementById('modalProgressFill');
+  const cur = document.getElementById('modalCurTime');
+  if(!audio||!fill) return;
+  const pct = audio.duration ? (audio.currentTime/audio.duration)*100 : 0;
+  fill.style.width = pct+'%';
+  const s = Math.floor(audio.currentTime);
+  cur.textContent = Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;
+}
+function seekModalAudio(e) {
+  const audio = document.getElementById('modalAudio');
+  const wrap = document.getElementById('modalProgressWrap');
+  if(!audio||!wrap) return;
+  const rect = wrap.getBoundingClientRect();
+  const pct = (e.clientX-rect.left)/rect.width;
+  audio.currentTime = pct * audio.duration;
+}
+function modalAudioEnded() {
+  const btn = document.getElementById('modalPlayBtn');
+  if(btn) btn.innerHTML='<i class="fas fa-play"></i>';
+}
+
+// ═══════════════════════════════════════════
+//  DETAIL AUDIO PLAYER
+// ═══════════════════════════════════════════
+function toggleDetAudio() {
+  const audio = document.getElementById('detAudio');
+  const btn = document.getElementById('detPlayBtn');
+  if(!audio) return;
+  if(audio.paused) { audio.play(); btn.innerHTML='<i class="fas fa-pause"></i>'; }
+  else { audio.pause(); btn.innerHTML='<i class="fas fa-play"></i>'; }
+}
+function updateDetProgress() {
+  const audio = document.getElementById('detAudio');
+  const fill = document.getElementById('detProgressFill');
+  const cur = document.getElementById('detCurTime');
+  if(!audio||!fill) return;
+  const pct = audio.duration ? (audio.currentTime/audio.duration)*100 : 0;
+  fill.style.width = pct+'%';
+  const s = Math.floor(audio.currentTime);
+  cur.textContent = Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;
+}
+function seekDetAudio(e) {
+  const audio = document.getElementById('detAudio');
+  const wrap = document.getElementById('detProgressWrap');
+  if(!audio||!wrap||!audio.duration) return;
+  const rect = wrap.getBoundingClientRect();
+  const pct = Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+  audio.currentTime = pct * audio.duration;
+}
+function detAudioEnded() {
+  const btn = document.getElementById('detPlayBtn');
+  if(btn) btn.innerHTML='<i class="fas fa-play"></i>';
+}
+function detMetaLoaded() {
+  const audio = document.getElementById('detAudio');
+  const dur = document.getElementById('detDurTime');
+  if(!audio||!dur) return;
+  const s = Math.floor(audio.duration);
+  dur.textContent = Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;
+}
+
+// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+function deleteMemory(id) {
+  if(!confirm('Delete this memory?')) return;
+  memories = memories.filter(m=>m.id!==id);
+  save(); closeDetail(); renderMemList(); renderRecent();
+  toast('Memory deleted','ok');
+}
+
+// ═══════════════════════════════════════════
+//  INSIGHTS
+// ═══════════════════════════════════════════
+async function generateInsights() {
+  if(memories.length<2) return toast('Add at least 2 memories first','err');
+  document.getElementById('insightsList').innerHTML = `<div class="ai-box"><i class="fas fa-spinner"></i><p>Generating insights from your memories…</p></div>`;
+  const summary = memories.map(m=>`[${m.type}] ${m.title}: ${m.summary||m.content||''}`).join('\n');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        messages:[{role:'user',content:`Analyze these memories and return ONLY a JSON array (no markdown) of 3 insight objects:
+[{"type":"Pattern","text":"insight","meta":"based on X memories"},...]
+Types: Pattern, Reminder, Suggestion, Summary
+Memories:
+${summary}`}]
+      })
+    });
+    const data = await res.json();
+    const arr = JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
+    document.getElementById('insightsList').innerHTML = arr.map(i=>`
+      <div class="insight">
+        <div class="insight-type">${i.type}</div>
+        <div class="insight-text">${i.text}</div>
+        <div class="insight-meta">${i.meta||''}</div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('insightsList').innerHTML = `<div class="empty"><i class="fas fa-exclamation-circle"></i><p>Could not generate insights. Please try again.</p></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════
+//  PROFILE ACTIONS
+// ═══════════════════════════════════════════
+function exportData() {
+  const blob = new Blob([JSON.stringify(memories,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'neuramemory-export.json'; a.click();
+  toast('Exported!','ok');
+}
+
+function clearAll() {
+  if(!confirm('Delete ALL memories? This cannot be undone.')) return;
+  memories = []; save(); renderRecent(); renderMemList();
+  toast('All memories cleared','ok');
+}
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+function toast(msg,type='ok') {
+  const el = document.getElementById('toast');
+  el.className = 'toast '+type;
+  el.querySelector('i').className = type==='ok'?'fas fa-check-circle':'fas fa-exclamation-circle';
+  document.getElementById('toastMsg').textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ═══════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+</script>
+</body>
+</html>
